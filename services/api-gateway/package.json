@@ -1,0 +1,12 @@
+{
+  "name": "api-gateway",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.13.6",
+    "express": "^4.22.1",
+    "http-proxy-middleware": "^2.0.6",
+    "prom-client": "^15.1.3"
+  }
+}

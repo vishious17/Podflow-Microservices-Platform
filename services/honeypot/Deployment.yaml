@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: honeypot
+  namespace: podflow
+  labels:
+    podflow.service: honeypot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      podflow.service: honeypot
+  template:
+    metadata:
+      labels:
+        podflow.service: honeypot
+    spec:
+      containers:
+      - name: honeypot
+        image: podflow-honeypot:latest
+        ports:
+        - containerPort: 2222
+        - containerPort: 8888
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: honeypot-service
+  namespace: podflow
+spec:
+  selector:
+    podflow.service: honeypot
+  ports:
+    - name: ssh-trap
+      protocol: TCP
+      port: 2222
+      targetPort: 2222
+    - name: http-trap
+      protocol: TCP
+      port: 8888
+      targetPort: 8888
