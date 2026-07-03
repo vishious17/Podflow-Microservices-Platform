@@ -1,0 +1,237 @@
+{
+  "title": "PodFlow System",
+  "uid": "podflow01",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "timezone": "browser",
+  "tags": ["podflow"],
+  "annotations": { "list": [] },
+  "templating": { "list": [] },
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "CPU Usage",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "podflow-prometheus" },
+      "targets": [
+        {
+          "expr": "rate(process_cpu_seconds_total[1m])",
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Memory Usage",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "podflow-prometheus" },
+      "targets": [
+        {
+          "expr": "process_resident_memory_bytes",
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Gateway Requests Total",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "podflow-prometheus" },
+      "targets": [
+        {
+          "expr": "rate(gateway_http_requests_total[1m])",
+          "legendFormat": "{{method}} {{route}} {{status}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Service Request Rates",
+      "type": "timeseries",
+      "gridPos": { "x": 8, "y": 8, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "podflow-prometheus" },
+      "targets": [
+        {
+          "expr": "rate(http_requests_total[1m])",
+          "legendFormat": "{{job}} {{route}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Honeypot Intrusion Attempts",
+      "type": "timeseries",
+      "gridPos": { "x": 16, "y": 8, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "podflow-prometheus" },
+      "targets": [
+        {
+          "expr": "rate(honeypot_suspicious_requests_total[1m])",
+          "legendFormat": "{{endpoint}}",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(honeypot_intrusion_attempts_total[1m])",
+          "legendFormat": "{{type}} {{country}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Unique Attackers",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 16, "w": 6, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "podflow-prometheus" },
+      "targets": [
+        {
+          "expr": "honeypot_unique_attackers_total",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 5 },
+              { "color": "red", "value": 20 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background"
+      }
+    },
+    {
+      "id": 7,
+      "title": "Login Attempts Captured",
+      "type": "stat",
+      "gridPos": { "x": 6, "y": 16, "w": 6, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "podflow-prometheus" },
+      "targets": [
+        {
+          "expr": "sum(honeypot_login_attempts_total)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background"
+      }
+    },
+    {
+      "id": 8,
+      "title": "Data Service Logs Received",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "podflow-prometheus" },
+      "targets": [
+        {
+          "expr": "rate(data_service_logs_total[1m])",
+          "legendFormat": "{{service}} {{status}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      }
+    }
+  ]
+}

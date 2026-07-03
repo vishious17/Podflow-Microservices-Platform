@@ -4,14 +4,9 @@ __pycache__/
 venv/
 .env.*
 *.log
-
-# Podman volumes
 volumes/
-
-# IDE
+node_modules/
 .vscode/
 .idea/
-
-# OS
 .DS_Store
 Thumbs.db

@@ -1,15 +1,13 @@
-# ===============================================================
-# QUICK SUMMARY OF CONNECTIVITY:
-# 1. GATEWAY: Public access (8080) -> Can talk to Backend.
-# 2. BACKEND: Private access (5000) -> Only Gateway & Prometheus allowed.
-# 3. HONEYPOT: Trap access (2222/8888) -> Open to all & Prometheus.
-# 4. MONITORING: Prometheus is allowed to scrape all tiers.
-# ===============================================================
-
-# ===============================================================
-# PODFLOW SECURITY ARCHITECTURE 
-# Purpose: Zero-Trust segmentation with Monitoring Integration
-# ===============================================================
+# Zero-trust network policy specification (Calico CRD syntax).
+# Enforced only when deployed to Kubernetes with Calico CNI.
+# In the current Podman setup, enforcement is via bridge network
+# segmentation and honeypot_net isolation in podman-compose.yml.
+#
+# Connectivity summary:
+#   gateway  -> backend (5000), user-service (3000), data-service (4000)
+#   backend  -> ingress from gateway + prometheus only
+#   honeypot -> open ingress (trap), no egress to internal services
+#   default  -> deny all
 
 apiVersion: projectcalico.org/v3
 kind: NetworkPolicy
@@ -22,31 +20,34 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # COMPLETED: External traffic allowed on Port 8080
     - action: Allow
       protocol: TCP
       destination:
-        ports:
-          - 8080
-    # COMPLETED: Allow Prometheus to scrape Gateway metrics
+        ports: [8080]
     - action: Allow
       protocol: TCP
       source:
         selector: app == 'prometheus'
   egress:
-    # COMPLETED: Connect to Backend tier on Port 5000
     - action: Allow
       protocol: TCP
       destination:
         selector: podflow.tier == 'backend'
-        ports:
-          - 5000
-    # COMPLETED: DNS resolution enabled
+        ports: [5000]
+    - action: Allow
+      protocol: TCP
+      destination:
+        selector: podflow.tier == 'user-service'
+        ports: [3000]
+    - action: Allow
+      protocol: TCP
+      destination:
+        selector: podflow.tier == 'data-service'
+        ports: [4000]
     - action: Allow
       protocol: UDP
       destination:
-        ports:
-          - 53
+        ports: [53]
 
 ---
 
@@ -61,29 +62,23 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # COMPLETED: Only the Gateway tier can reach the Backend API
     - action: Allow
       protocol: TCP
       source:
         selector: podflow.tier == 'frontend'
       destination:
-        ports:
-          - 5000
-    # COMPLETED: Allow Prometheus to scrape metrics on Port 5000
+        ports: [5000]
     - action: Allow
       protocol: TCP
       source:
         selector: app == 'prometheus'
       destination:
-        ports:
-          - 5000
+        ports: [5000]
   egress:
-    # COMPLETED: Isolated egress; only DNS is permitted
     - action: Allow
       protocol: UDP
       destination:
-        ports:
-          - 53
+        ports: [53]
     - action: Deny
 
 ---
@@ -99,29 +94,21 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # COMPLETED: Open trap ports 2222 (SSH) and 8888 (HTTP)
     - action: Allow
       protocol: TCP
       destination:
-        ports:
-          - 2222
-          - 8888
-    # COMPLETED: Allow Prometheus to pull attack metrics from Port 8888
+        ports: [2222, 8888]
     - action: Allow
       protocol: TCP
       source:
         selector: app == 'prometheus'
       destination:
-        ports:
-          - 8888
+        ports: [8888]
   egress:
-    # COMPLETED: Internal DNS allowed
     - action: Allow
       protocol: UDP
       destination:
-        ports:
-          - 53
-    # TODO: Future update - Add egress to Alertmanager (9090)
+        ports: [53]
     - action: Deny
 
 ---
@@ -135,7 +122,6 @@ spec:
   types:
     - Ingress
     - Egress
-  # COMPLETED: The "Master Lock" - Deny all traffic not explicitly allowed above
   ingress:
     - action: Deny
   egress:

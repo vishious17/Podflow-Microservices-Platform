@@ -18,10 +18,6 @@ scrape_configs:
   - job_name: 'user-service'
     static_configs:
       - targets: ['user-service:3000']
-
-  - job_name: 'honeypot'
-    static_configs:
-      - targets: ['honeypot:8888']
     metrics_path: /metrics
 
   - job_name: 'backend'
@@ -29,4 +25,12 @@ scrape_configs:
       - targets: ['backend:5000']
     metrics_path: /metrics
 
+  - job_name: 'data-service'
+    static_configs:
+      - targets: ['data-service:4000']
+    metrics_path: /metrics
 
+  - job_name: 'honeypot'
+    static_configs:
+      - targets: ['honeypot:8888']
+    metrics_path: /metrics

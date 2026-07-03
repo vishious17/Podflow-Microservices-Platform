@@ -1,10 +1,12 @@
 {
   "name": "user-service",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "main": "index.js",
+  "type": "commonjs",
   "dependencies": {
-    "axios": "^1.13.6",
-    "express": "^4.22.1",
+    "bcryptjs": "^2.4.3",
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
     "prom-client": "^15.1.3"
   }
 }
