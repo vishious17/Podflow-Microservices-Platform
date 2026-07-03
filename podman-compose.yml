@@ -52,6 +52,9 @@ services:
     build: ./services/honeypot
     ports:
       - "8888:8888"
+      - "2222:2222"
+    volumes:
+      - honeypot_data:/data
     networks:
       - service_net
     restart: unless-stopped
@@ -68,3 +71,7 @@ networks:
 
   service_net:
     driver: bridge
+
+volumes:
+  honeypot_data:
+  
