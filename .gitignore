@@ -10,3 +10,5 @@ node_modules/
 .idea/
 .DS_Store
 Thumbs.db
+\services\api-gateway\node_modules\
+\services\backend\node_modules\
