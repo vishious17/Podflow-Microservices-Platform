@@ -3,5 +3,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY index.js .
-EXPOSE 8080
+COPY middleware/ ./middleware/
+COPY public/ ./public/
+EXPOSE 8080 8443
 CMD ["node", "index.js"]
