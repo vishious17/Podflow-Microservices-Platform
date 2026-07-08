@@ -1,0 +1,29 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname', 'severity']
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 1h
+  receiver: 'podflow-webhook'
+
+  routes:
+    - match:
+        severity: critical
+      group_wait: 5s
+      repeat_interval: 15m
+      receiver: 'podflow-webhook'
+
+receivers:
+  - name: 'podflow-webhook'
+    webhook_configs:
+      - url: 'http://data-service:4000/alerts'
+        send_resolved: true
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname']

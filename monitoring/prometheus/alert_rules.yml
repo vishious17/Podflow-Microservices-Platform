@@ -1,0 +1,51 @@
+groups:
+  - name: podflow
+    rules:
+
+      - alert: ServiceDown
+        expr: up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is unreachable"
+          description: "Prometheus cannot scrape {{ $labels.job }}. It has been down for more than 30 seconds."
+
+      - alert: HighGatewayErrorRate
+        expr: |
+          rate(gateway_http_requests_total{status=~"5.."}[5m])
+          /
+          rate(gateway_http_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on API gateway"
+          description: "More than 5% of gateway requests are returning 5xx errors over the last 5 minutes."
+
+      - alert: HoneypotIntrusionSpike
+        expr: rate(honeypot_intrusion_attempts_total[5m]) > 0.5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Honeypot intrusion spike detected"
+          description: "Intrusion attempt rate has exceeded 0.5 per second for more than 1 minute."
+
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes > 512 * 1024 * 1024
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.job }}"
+          description: "{{ $labels.job }} is using more than 512MB of memory for over 5 minutes."
+
+      - alert: LoginAttemptSpike
+        expr: rate(honeypot_login_attempts_total[5m]) > 0.2
+        for: 1m
+        labels:
+          severity: info
+        annotations:
+          summary: "Honeypot login attempt spike"
+          description: "Login attempts on honeypot traps exceeding 0.2 per second."
