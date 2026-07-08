@@ -14,12 +14,13 @@ SCALE_DOWN_THRESHOLD = 30.0
 MIN_REPLICAS         = 1
 MAX_REPLICAS         = 3
 COOLDOWN             = 30
+GRACEFUL_TIMEOUT     = 30
 
 last_scale_time = 0.0
 
 
 def log(msg):
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}", flush=True)
+    print(f"[{datetime.now().strftime('%d-%m-%Y %H:%M:%S')}] {msg}", flush=True)
 
 
 def detect_project_prefix():
@@ -181,12 +182,11 @@ def scale_up(current_count, base_container):
     network  = get_container_network(base_container)
     image    = get_container_image(base_container)
     log(f"Scaling up: launching {new_name}")
-    cmd = ["podman", "run", "-d",
-           "--name", new_name,
-           "--network", network,
-           "--network-alias", "backend",
-           image]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(
+        ["podman", "run", "-d", "--name", new_name,
+         "--network", network, "--network-alias", "backend", image],
+        capture_output=True, text=True
+    )
     if result.returncode == 0:
         log(f"Replica started: {new_name}")
     else:
@@ -199,35 +199,87 @@ def scale_down(containers):
         log("No replicas to remove.")
         return
     target = extras[-1]
-    log(f"Scaling down: removing {target}")
-    result = subprocess.run(["podman", "rm", "-f", target], capture_output=True, text=True)
-    if result.returncode == 0:
-        log(f"Replica removed: {target}")
+    log(f"Scaling down: gracefully stopping {target} (timeout={GRACEFUL_TIMEOUT}s)")
+    stop_result = subprocess.run(
+        ["podman", "stop", "--time", str(GRACEFUL_TIMEOUT), target],
+        capture_output=True, text=True
+    )
+    if stop_result.returncode == 0:
+        rm_result = subprocess.run(
+            ["podman", "rm", target], capture_output=True, text=True
+        )
+        if rm_result.returncode == 0:
+            log(f"Replica removed: {target}")
+        else:
+            log(f"Remove after stop failed: {rm_result.stderr.strip()}")
     else:
-        log(f"Scale down failed: {result.stderr.strip()}")
+        log(f"Graceful stop failed, forcing removal: {stop_result.stderr.strip()}")
+        subprocess.run(["podman", "rm", "-f", target], capture_output=True, text=True)
+
+
+def print_status_table(service_states):
+    """Print a formatted status table for all monitored services each cycle."""
+    bar = '-' * 62
+    print(bar, flush=True)
+    print(f"  {'SERVICE':<22} {'CONTAINER':<14} {'HTTP CHECK'}", flush=True)
+    print(bar, flush=True)
+    for short, cstatus, hstatus in service_states:
+        print(f"  {short:<22} {cstatus:<14} {hstatus}", flush=True)
+    print(bar, flush=True)
 
 
 def run_orchestrator():
     global last_scale_time
     log("PodFlow Orchestrator started")
-    log(f"Monitoring: {list(SERVICES.keys())}")
-    print("-" * 60, flush=True)
+    log(f"Monitoring {len(SERVICES)} services — check interval: {CHECK_INTERVAL}s")
+    log(f"Graceful shutdown timeout: {GRACEFUL_TIMEOUT}s")
 
     while True:
-        for container_name, health_url in SERVICES.items():
-            short  = container_name.replace(f"{PROJECT_PREFIX}_", "").replace("_1", "")
-            status = get_container_status(container_name)
+        # ------ STEP 1: Collect current state for all services ------
+        # Cache results so we use them in both the status table
+        # and the healing loop without double-polling.
+        container_states = {}
+        http_states      = {}
 
-            if status == "stopping":
+        for container_name, health_url in SERVICES.items():
+            container_states[container_name] = get_container_status(container_name)
+            if health_url and container_states[container_name] in ("running", "healthy"):
+                http_states[container_name] = is_app_healthy(health_url)
+            else:
+                http_states[container_name] = None
+
+        # ------ STEP 2: Print status table for all services ------
+        service_states = []
+        for container_name in SERVICES:
+            short    = container_name.replace(f"{PROJECT_PREFIX}_", "").replace("_1", "")
+            cstatus  = container_states[container_name]
+            hurl     = SERVICES[container_name]
+            if hurl is None:
+                hcheck = "no endpoint"
+            elif cstatus not in ("running", "healthy"):
+                hcheck = "skipped (not running)"
+            else:
+                hcheck = "OK" if http_states[container_name] else "FAIL"
+            service_states.append((short, cstatus, hcheck))
+
+        print_status_table(service_states)
+
+        # ------ STEP 3: Auto-healing using cached state ------
+        for container_name, health_url in SERVICES.items():
+            short   = container_name.replace(f"{PROJECT_PREFIX}_", "").replace("_1", "")
+            cstatus = container_states[container_name]
+
+            if cstatus == "stopping":
                 continue
-            elif status not in ["running", "healthy"]:
-                log(f"[{short}] Not running (status: {status}). Restarting.")
+            elif cstatus not in ["running", "healthy"]:
+                log(f"[{short}] Not running (status: {cstatus}). Restarting.")
                 restart_container(container_name)
                 failure_counts[container_name] = 0
                 continue
 
             if health_url:
-                if not is_app_healthy(health_url):
+                healthy = http_states[container_name]
+                if not healthy:
                     failure_counts[container_name] += 1
                     log(f"[{short}] Health check failed "
                         f"({failure_counts[container_name]}/{FAILURE_THRESHOLD})")
@@ -240,18 +292,18 @@ def run_orchestrator():
                         log(f"[{short}] Recovered.")
                     failure_counts[container_name] = 0
 
+        # ------ STEP 4: Auto-scaling ------
         backend_containers = get_backend_containers()
         replica_count      = len(backend_containers)
         base_container     = f"{PROJECT_PREFIX}_backend_1"
 
         if replica_count > 0:
-            avg_cpu = get_cpu_usage(backend_containers)
-            log(f"Backend replicas: {replica_count} | Avg CPU: {avg_cpu:.2f}%")
-            now            = time.time()
+            avg_cpu         = get_cpu_usage(backend_containers)
+            now             = time.time()
             cooldown_active = (now - last_scale_time) < COOLDOWN
+            log(f"Backend replicas: {replica_count} | Avg CPU: {avg_cpu:.2f}%")
             if cooldown_active:
-                remaining = int(COOLDOWN - (now - last_scale_time))
-                log(f"Cooldown active ({remaining}s remaining)")
+                log(f"Cooldown active ({int(COOLDOWN - (now - last_scale_time))}s remaining)")
             else:
                 if avg_cpu > CPU_THRESHOLD and replica_count < MAX_REPLICAS:
                     scale_up(replica_count, base_container)
@@ -262,7 +314,6 @@ def run_orchestrator():
         else:
             log("No backend containers found.")
 
-        print("-" * 60, flush=True)
         time.sleep(CHECK_INTERVAL)
 
 
