@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PodFlow</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg0: #06090f;
+  --bg1: #080e1a;
+  --bg2: #0c1422;
+  --bg3: #111e32;
+  --bg4: #172440;
+  --border: #1a2e46;
+  --border2: #223655;
+  --text: #c9d8e8;
+  --muted: #5a7898;
+  --muted2: #3d5a78;
+  --accent: #00b4d8;
+  --accent-dim: rgba(0,180,216,.15);
+  --accent-glow: rgba(0,180,216,.25);
+  --green: #00e676;
+  --green-dim: rgba(0,230,118,.12);
+  --red: #ff5252;
+  --red-dim: rgba(255,82,82,.12);
+  --yellow: #ffd740;
+  --orange: #ff9100;
+  --purple: #b388ff;
+  --purple-dim: rgba(179,136,255,.12);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg0);
+  color: var(--text);
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Sidebar ── */
+#sidebar {
+  width: 230px;
+  min-width: 230px;
+  background: var(--bg1);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+#sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), #0066cc);
+}
+
+#logo {
+  padding: 22px 18px 18px;
+  border-bottom: 1px solid var(--border);
+}
+#logo .brand {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  background: linear-gradient(135deg, #00d4ff, #0077ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  line-height: 1;
+}
+#logo .sub {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: .8px;
+  margin-top: 5px;
+  text-transform: uppercase;
+}
+#logo .version-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  margin-right: 5px;
+  box-shadow: 0 0 6px var(--green);
+  vertical-align: middle;
+}
+
+nav { padding: 10px 0; flex: 1; overflow-y: auto; }
+nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 400;
+  border-left: 3px solid transparent;
+  transition: all .15s ease;
+  position: relative;
+}
+nav a:hover { color: var(--text); background: rgba(255,255,255,.03); }
+nav a.active {
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-left-color: var(--accent);
+  font-weight: 500;
+}
+nav a .icon {
+  width: 18px;
+  font-size: 14px;
+  opacity: .7;
+  flex-shrink: 0;
+}
+nav a.active .icon { opacity: 1; }
+
+.nav-section {
+  padding: 14px 18px 4px;
+  font-size: 10px;
+  color: var(--muted2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+#sidebar-footer {
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.footer-dot {
+  width: 5px; height: 5px;
+  background: var(--green);
+  border-radius: 50%;
+  box-shadow: 0 0 5px var(--green);
+}
+
+/* ── Main ── */
+#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+#topbar {
+  height: 54px;
+  min-height: 54px;
+  background: var(--bg1);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px;
+  gap: 16px;
+}
+#topbar h1 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+#topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+#live-clock {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: 'Courier New', monospace;
+  background: var(--bg2);
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+#user-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px 4px 8px;
+}
+#user-avatar {
+  width: 24px; height: 24px;
+  background: linear-gradient(135deg, var(--accent), #0066cc);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+#user-email { font-size: 12px; color: var(--text); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.btn:hover { background: var(--bg4); border-color: var(--border2); }
+.btn.primary {
+  background: linear-gradient(135deg, var(--accent), #0077cc);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.btn.primary:hover { opacity: .85; }
+.btn.danger { border-color: var(--red); color: var(--red); background: transparent; }
+.btn.danger:hover { background: var(--red-dim); }
+.btn.xs { padding: 3px 9px; font-size: 11px; border-radius: 4px; }
+
+/* ── Content ── */
+#content { flex: 1; overflow-y: auto; padding: 22px; }
+.tab { display: none; animation: fade-in .2s ease; }
+.tab.active { display: block; }
+@keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ── Stat row ── */
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+.stat-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 16px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color .2s;
+}
+.stat-card:hover { border-color: var(--border2); }
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.stat-card.c-blue::before  { background: linear-gradient(90deg, var(--accent), #0066cc); }
+.stat-card.c-green::before { background: linear-gradient(90deg, var(--green), #00a060); }
+.stat-card.c-orange::before{ background: linear-gradient(90deg, var(--orange), #cc5500); }
+.stat-card.c-purple::before{ background: linear-gradient(90deg, var(--purple), #6633cc); }
+.stat-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  margin-bottom: 10px;
+}
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+.stat-card.c-blue  .stat-value { color: var(--accent); }
+.stat-card.c-green .stat-value { color: var(--green); }
+.stat-card.c-orange .stat-value { color: var(--orange); }
+.stat-card.c-purple .stat-value { color: var(--purple); }
+
+/* ── Section header ── */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.section-head h2 { font-size: 14px; font-weight: 600; }
+
+/* ── Cards / panels ── */
+.panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+.panel-head {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg3);
+}
+.panel-head h3 { font-size: 13px; font-weight: 600; }
+
+/* ── Tables ── */
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: var(--bg3); }
+th {
+  text-align: left;
+  padding: 9px 14px;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 500;
+}
+td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: rgba(255,255,255,.02); }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge.green  { background: var(--green-dim);  color: var(--green);  }
+.badge.red    { background: var(--red-dim);    color: var(--red);    }
+.badge.blue   { background: var(--accent-dim); color: var(--accent); }
+.badge.yellow { background: rgba(255,215,64,.12); color: var(--yellow); }
+.badge.orange { background: rgba(255,145,0,.12);  color: var(--orange); }
+.badge.purple { background: var(--purple-dim); color: var(--purple); }
+
+.actions { display: flex; gap: 6px; }
+.mono { font-family: 'Courier New', monospace; font-size: 11px; }
+.text-muted { color: var(--muted); }
+.empty { text-align: center; padding: 36px; color: var(--muted); font-size: 13px; }
+
+/* ── Forms ── */
+.form-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+.form-panel h3 { font-size: 13px; font-weight: 600; margin-bottom: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label { font-size: 11px; color: var(--muted); font-weight: 500; }
+.form-group input,
+.form-group select,
+.form-group textarea {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color .15s;
+}
+.form-group input:focus,
+.form-group textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+.form-group textarea { resize: vertical; min-height: 72px; }
+
+/* ── Charts ── */
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+.chart-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+.chart-panel h3 { font-size: 12px; color: var(--muted); margin-bottom: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: .5px; }
+
+/* ── Auth Overlay ── */
+#auth-overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(0,20,40,.98) 0%, rgba(6,9,15,.99) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+#auth-box {
+  background: var(--bg1);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 36px 32px;
+  width: 380px;
+  position: relative;
+  box-shadow: 0 24px 64px rgba(0,0,0,.6), 0 0 0 1px rgba(0,180,216,.08);
+}
+#auth-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 20%; right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.auth-logo {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  background: linear-gradient(135deg, #00d4ff, #0077ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+  margin-bottom: 4px;
+}
+.auth-tagline {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 26px;
+  letter-spacing: .4px;
+}
+.auth-tabs {
+  display: flex;
+  background: var(--bg2);
+  border-radius: 8px;
+  padding: 3px;
+  margin-bottom: 22px;
+  border: 1px solid var(--border);
+}
+.auth-tab {
+  flex: 1;
+  padding: 7px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--muted);
+  border-radius: 6px;
+  transition: all .15s;
+}
+.auth-tab.active { background: var(--bg4); color: var(--accent); font-weight: 600; }
+#auth-form-area .form-group { margin-bottom: 12px; }
+#auth-form-area .form-group input { width: 100%; }
+#auth-btn { width: 100%; justify-content: center; padding: 10px; font-size: 14px; margin-top: 6px; border-radius: 8px; }
+#auth-error { color: var(--red); font-size: 12px; margin-top: 10px; text-align: center; min-height: 16px; }
+
+/* ── Modal ── */
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  backdrop-filter: blur(2px);
+}
+.modal {
+  background: var(--bg1);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 24px;
+  width: 500px;
+  max-width: 95vw;
+  box-shadow: 0 16px 48px rgba(0,0,0,.5);
+}
+.modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+/* ── Toast ── */
+#toast-container {
+  position: fixed;
+  bottom: 22px;
+  right: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9999;
+}
+.toast {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 11px 16px;
+  font-size: 13px;
+  max-width: 320px;
+  animation: toast-in .2s ease;
+  box-shadow: 0 6px 20px rgba(0,0,0,.4);
+}
+.toast.success { border-left: 3px solid var(--green); }
+.toast.error   { border-left: 3px solid var(--red);   }
+.toast.info    { border-left: 3px solid var(--accent); }
+@keyframes toast-in { from { opacity:0; transform: translateX(16px); } to { opacity:1; transform: none; } }
+
+/* ── Services grid ── */
+.services-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.svc-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  text-decoration: none;
+  color: var(--text);
+  transition: all .15s;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  position: relative;
+  overflow: hidden;
+}
+.svc-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity .2s;
+}
+.svc-card:hover { border-color: var(--border2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+.svc-card:hover::before { opacity: 1; }
+.svc-name { font-weight: 600; font-size: 14px; color: var(--accent); }
+.svc-url  { font-size: 11px; color: var(--muted); font-family: monospace; }
+.svc-desc { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.4; }
+
+/* ── API ref ── */
+code {
+  background: var(--bg3);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: var(--orange);
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-overlay">
+  <div id="auth-box">
+    <div class="auth-logo">PODFLOW</div>
+    <div class="auth-tagline">Advanced Containerized Microservices Platform</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuthTab('login')">Sign In</div>
+      <div class="auth-tab" onclick="switchAuthTab('register')">Register</div>
+    </div>
+    <div id="auth-form-area"></div>
+    <div id="auth-error"></div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div id="logo">
+    <div class="brand">PODFLOW</div>
+    <div class="sub"><span class="version-dot"></span>Platform v3.0</div>
+  </div>
+  <nav>
+    <div class="nav-section">Platform</div>
+    <a href="#" class="active" onclick="showTab('overview',this)">
+      <span class="icon">&#9671;</span> Overview
+    </a>
+    <a href="#" onclick="showTab('data',this)">
+      <span class="icon">&#9632;</span> Data Entries
+    </a>
+    <div class="nav-section">Insights</div>
+    <a href="#" onclick="showTab('analytics',this)">
+      <span class="icon">&#9676;</span> Analytics
+    </a>
+    <a href="#" onclick="showTab('logs',this)">
+      <span class="icon">&#9472;</span> Request Logs
+    </a>
+    <div class="nav-section">Infrastructure</div>
+    <a href="#" onclick="showTab('services',this)">
+      <span class="icon">&#9635;</span> Services
+    </a>
+  </nav>
+  <div id="sidebar-footer">
+    <span class="footer-dot"></span> All systems operational
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="topbar">
+    <h1 id="page-title">Overview</h1>
+    <div id="topbar-right">
+      <div id="live-clock">--:--:-- IST</div>
+      <div id="user-pill">
+        <div id="user-avatar">?</div>
+        <div id="user-email">Not signed in</div>
+      </div>
+      <button class="btn xs" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+
+  <div id="content">
+
+    <!-- OVERVIEW -->
+    <div id="tab-overview" class="tab active">
+      <div class="stat-row">
+        <div class="stat-card c-blue">
+          <div class="stat-label">Total Users</div>
+          <div class="stat-value" id="stat-users">-</div>
+        </div>
+        <div class="stat-card c-green">
+          <div class="stat-label">Data Entries</div>
+          <div class="stat-value" id="stat-entries">-</div>
+        </div>
+        <div class="stat-card c-orange">
+          <div class="stat-label">Total Requests</div>
+          <div class="stat-value" id="stat-requests">-</div>
+        </div>
+        <div class="stat-card c-purple">
+          <div class="stat-label">Unique Attackers</div>
+          <div class="stat-value" id="stat-attackers">-</div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-panel">
+          <h3>Requests by Service</h3>
+          <canvas id="chart-overview-svc" height="180"></canvas>
+        </div>
+        <div class="chart-panel">
+          <h3>Response Status Distribution</h3>
+          <canvas id="chart-overview-status" height="180"></canvas>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Recent Activity</h3>
+          <button class="btn xs" onclick="loadOverview()">Refresh</button>
+        </div>
+        <table>
+          <thead><tr><th>Timestamp (IST)</th><th>Service</th><th>Method</th><th>Route</th><th>Status</th><th>Duration</th></tr></thead>
+          <tbody id="recent-logs"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DATA ENTRIES -->
+    <div id="tab-data" class="tab">
+      <div class="form-panel">
+        <h3>New Entry</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Title</label><input id="entry-title" placeholder="Entry title"></div>
+          <div class="form-group"><label>Author ID (optional)</label><input id="entry-author" type="number" placeholder="User ID"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Content</label>
+          <textarea id="entry-content" placeholder="Write your content here..."></textarea>
+        </div>
+        <button class="btn primary" onclick="createEntry()">Create Entry</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>All Entries</h3>
+          <button class="btn xs" onclick="loadEntries()">Refresh</button>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Title</th><th>Content</th><th>Author</th><th>Created (IST)</th><th>Actions</th></tr></thead>
+          <tbody id="entries-table"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div id="tab-analytics" class="tab">
+      <div class="charts-row">
+        <div class="chart-panel">
+          <h3>Requests by Service</h3>
+          <canvas id="chart-svc" height="180"></canvas>
+        </div>
+        <div class="chart-panel">
+          <h3>Avg Latency by Service (ms)</h3>
+          <canvas id="chart-latency" height="180"></canvas>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="panel" style="margin:0">
+          <div class="panel-head"><h3>Status Distribution</h3></div>
+          <table>
+            <thead><tr><th>Status</th><th>Count</th></tr></thead>
+            <tbody id="tbl-status"></tbody>
+          </table>
+        </div>
+        <div class="panel" style="margin:0">
+          <div class="panel-head"><h3>Top Routes</h3></div>
+          <table>
+            <thead><tr><th>Route</th><th>Count</th></tr></thead>
+            <tbody id="tbl-routes"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGS -->
+    <div id="tab-logs" class="tab">
+      <div class="form-panel" style="padding:12px 16px; margin-bottom:14px">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="form-group" style="margin:0;flex:0 0 200px">
+            <select id="log-filter" onchange="loadLogs()">
+              <option value="">All services</option>
+              <option value="api-gateway">api-gateway</option>
+              <option value="user-service">user-service</option>
+              <option value="backend">backend</option>
+              <option value="data-service">data-service</option>
+            </select>
+          </div>
+          <span class="text-muted">Last 100 entries</span>
+          <button class="btn xs" onclick="loadLogs()" style="margin-left:auto">Refresh</button>
+        </div>
+      </div>
+      <div class="panel">
+        <table>
+          <thead><tr><th>Timestamp (IST)</th><th>Service</th><th>Method</th><th>Route</th><th>Status</th><th>Duration</th><th>IP</th></tr></thead>
+          <tbody id="logs-table"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SERVICES -->
+    <div id="tab-services" class="tab">
+      <div class="section-head"><h2>External Interfaces</h2></div>
+      <div class="services-grid" style="margin-bottom:22px">
+        <a class="svc-card" href="http://localhost:3000" target="_blank">
+          <div class="svc-name">Grafana</div>
+          <div class="svc-url">http://localhost:3000</div>
+          <div class="svc-desc">Real-time dashboards — login: admin / admin</div>
+        </a>
+        <a class="svc-card" href="http://localhost:9090" target="_blank">
+          <div class="svc-name">Prometheus</div>
+          <div class="svc-url">http://localhost:9090</div>
+          <div class="svc-desc">Metrics explorer and scrape target health</div>
+        </a>
+        <a class="svc-card" href="http://localhost:9093" target="_blank">
+          <div class="svc-name">Alertmanager</div>
+          <div class="svc-url">http://localhost:9093</div>
+          <div class="svc-desc">Active alerts, silences, and routing config</div>
+        </a>
+        <a class="svc-card" href="http://localhost:8888/honeypot-dashboard" target="_blank">
+          <div class="svc-name">Honeypot Dashboard</div>
+          <div class="svc-url">http://localhost:8888/honeypot-dashboard</div>
+          <div class="svc-desc">Live intrusion log with geolocation and credentials</div>
+        </a>
+        <a class="svc-card" href="http://localhost:9090/targets" target="_blank">
+          <div class="svc-name">Prometheus Targets</div>
+          <div class="svc-url">http://localhost:9090/targets</div>
+          <div class="svc-desc">Scrape status for all 7 monitored services</div>
+        </a>
+        <a class="svc-card" href="http://localhost:8888/intrusions" target="_blank">
+          <div class="svc-name">Intrusions API</div>
+          <div class="svc-url">http://localhost:8888/intrusions</div>
+          <div class="svc-desc">Raw JSON intrusion log from the honeypot</div>
+        </a>
+      </div>
+
+      <div class="section-head"><h2>API Reference</h2></div>
+      <div class="panel">
+        <table>
+          <thead><tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge green">POST</span></td><td><code>/api/users/register</code></td><td>No</td><td>Register a new user</td></tr>
+            <tr><td><span class="badge green">POST</span></td><td><code>/api/users/login</code></td><td>No</td><td>Login — returns JWT token</td></tr>
+            <tr><td><span class="badge blue">GET</span></td><td><code>/api/users</code></td><td>Yes</td><td>List all registered users</td></tr>
+            <tr><td><span class="badge blue">GET</span></td><td><code>/api/users/:id</code></td><td>Yes</td><td>Get user by ID</td></tr>
+            <tr><td><span class="badge yellow">PUT</span></td><td><code>/api/users/:id</code></td><td>Yes</td><td>Update user name or email</td></tr>
+            <tr><td><span class="badge red">DELETE</span></td><td><code>/api/users/:id</code></td><td>Yes</td><td>Delete a user</td></tr>
+            <tr><td><span class="badge blue">GET</span></td><td><code>/api/data</code></td><td>Yes</td><td>List all data entries</td></tr>
+            <tr><td><span class="badge green">POST</span></td><td><code>/api/data</code></td><td>Yes</td><td>Create a data entry</td></tr>
+            <tr><td><span class="badge yellow">PUT</span></td><td><code>/api/data/:id</code></td><td>Yes</td><td>Update a data entry</td></tr>
+            <tr><td><span class="badge red">DELETE</span></td><td><code>/api/data/:id</code></td><td>Yes</td><td>Delete a data entry</td></tr>
+            <tr><td><span class="badge blue">GET</span></td><td><code>/api/analytics</code></td><td>Yes</td><td>Request analytics breakdown</td></tr>
+            <tr><td><span class="badge blue">GET</span></td><td><code>/api/logs</code></td><td>Yes</td><td>View request logs with optional ?service= filter</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- MODALS -->
+<div id="modal-entry" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-title">Edit Entry</div>
+    <input type="hidden" id="edit-entry-id">
+    <div class="form-group" style="margin-bottom:12px">
+      <label>Title</label>
+      <input id="edit-entry-title" style="width:100%">
+    </div>
+    <div class="form-group">
+      <label>Content</label>
+      <textarea id="edit-entry-content" style="width:100%;min-height:100px"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('modal-entry')">Cancel</button>
+      <button class="btn primary" onclick="saveEntry()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────
+let token       = sessionStorage.getItem('pf_token') || null;
+let currentUser = JSON.parse(sessionStorage.getItem('pf_user') || 'null');
+let charts      = {};
+let currentTab  = 'overview';
+
+// ── IST Date Formatting ───────────────────────────────
+function fmtDate(s) {
+  if (!s) return '-';
+  const d = new Date(s);
+  const date = d.toLocaleDateString('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit', month: '2-digit', year: 'numeric'
+  }).replace(/\//g, '-');
+  const time = d.toLocaleTimeString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    hour12: false,
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+  return `${date} ${time}`;
+}
+
+function updateClock() {
+  const now  = new Date();
+  const date = now.toLocaleDateString('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit', month: '2-digit', year: 'numeric'
+  }).replace(/\//g, '-');
+  const time = now.toLocaleTimeString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    hour12: false,
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+  const el = document.getElementById('live-clock');
+  if (el) el.textContent = `${date}  ${time} IST`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── API ───────────────────────────────────────────────
+async function api(path, method = 'GET', body = null, auth = true) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (auth && token) headers['Authorization'] = 'Bearer ' + token;
+  const opts = { method, headers };
+  if (body) opts.body = JSON.stringify(body);
+  const res  = await fetch(path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.errors?.[0]?.message || `HTTP ${res.status}`);
+  return data;
+}
+
+// ── Toast ─────────────────────────────────────────────
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ── Auth ──────────────────────────────────────────────
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  renderAuthForm(tab);
+}
+
+function renderAuthForm(tab) {
+  document.getElementById('auth-error').textContent = '';
+  const area = document.getElementById('auth-form-area');
+  if (tab === 'login') {
+    area.innerHTML = `
+      <div class="form-group"><label>Email</label>
+        <input id="a-email" type="email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doAuth('login')">
+      </div>
+      <div class="form-group" style="margin-top:10px"><label>Password</label>
+        <input id="a-password" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')doAuth('login')">
+      </div>
+      <button class="btn primary" id="auth-btn" onclick="doAuth('login')" style="width:100%;margin-top:16px;justify-content:center;padding:11px">Sign In</button>`;
+  } else {
+    area.innerHTML = `
+      <div class="form-group"><label>Full Name</label>
+        <input id="a-name" placeholder="Your name" onkeydown="if(event.key==='Enter')doAuth('register')">
+      </div>
+      <div class="form-group" style="margin-top:10px"><label>Email</label>
+        <input id="a-email" type="email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doAuth('register')">
+      </div>
+      <div class="form-group" style="margin-top:10px"><label>Password</label>
+        <input id="a-password" type="password" placeholder="Min 8 characters" onkeydown="if(event.key==='Enter')doAuth('register')">
+      </div>
+      <button class="btn primary" id="auth-btn" onclick="doAuth('register')" style="width:100%;margin-top:16px;justify-content:center;padding:11px">Create Account</button>`;
+  }
+}
+
+async function doAuth(mode) {
+  const email    = document.getElementById('a-email')?.value?.trim();
+  const password = document.getElementById('a-password')?.value;
+  const name     = document.getElementById('a-name')?.value?.trim();
+  const errEl    = document.getElementById('auth-error');
+  errEl.textContent = '';
+  if (!email || !password) { errEl.textContent = 'Email and password required.'; return; }
+  try {
+    let res;
+    if (mode === 'register') {
+      if (!name) { errEl.textContent = 'Name is required.'; return; }
+      await api('/api/users/register', 'POST', { name, email, password }, false);
+      res = await api('/api/users/login', 'POST', { email, password }, false);
+    } else {
+      res = await api('/api/users/login', 'POST', { email, password }, false);
+    }
+    token = res.token;
+    currentUser = res.user;
+    sessionStorage.setItem('pf_token', token);
+    sessionStorage.setItem('pf_user', JSON.stringify(currentUser));
+    document.getElementById('auth-overlay').style.display = 'none';
+    setUserDisplay();
+    loadCurrentTab();
+    toast('Welcome, ' + currentUser.name, 'success');
+  } catch (err) {
+    errEl.textContent = err.message || 'Authentication failed.';
+  }
+}
+
+function setUserDisplay() {
+  if (!currentUser) return;
+  document.getElementById('user-email').textContent = currentUser.email;
+  document.getElementById('user-avatar').textContent = currentUser.name.charAt(0).toUpperCase();
+}
+
+function logout() {
+  token = null; currentUser = null;
+  sessionStorage.removeItem('pf_token');
+  sessionStorage.removeItem('pf_user');
+  document.getElementById('auth-overlay').style.display = 'flex';
+  renderAuthForm('login');
+}
+
+// ── Navigation ────────────────────────────────────────
+function showTab(name, el) {
+  event.preventDefault();
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  el.classList.add('active');
+  const titles = { overview:'Overview', data:'Data Entries', analytics:'Analytics', logs:'Request Logs', services:'Services' };
+  document.getElementById('page-title').textContent = titles[name];
+  currentTab = name;
+  if (token) loadCurrentTab();
+}
+
+function loadCurrentTab() {
+  ({ overview: loadOverview, data: loadEntries, analytics: loadAnalytics, logs: loadLogs })[currentTab]?.();
+}
+
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+// ── Helpers ───────────────────────────────────────────
+function fmtDuration(ms) { return ms != null ? ms + 'ms' : '-'; }
+
+function statusBadge(s) {
+  const n   = parseInt(s);
+  const cls = n < 300 ? 'green' : n < 400 ? 'blue' : n < 500 ? 'yellow' : 'red';
+  return `<span class="badge ${cls}">${s}</span>`;
+}
+
+function methodBadge(m) {
+  const cls = { GET:'blue', POST:'green', PUT:'yellow', DELETE:'red' }[m] || 'blue';
+  return `<span class="badge ${cls}">${m}</span>`;
+}
+
+function mkChart(id, type, data, labelKey, valueKey) {
+  if (!data?.length) return;
+  const labels = data.map(d => d[labelKey]);
+  const values = data.map(d => Number(d[valueKey]));
+  const palette = ['#00b4d8','#00e676','#ff9100','#b388ff','#ff5252','#ffd740','#4fc3f7'];
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id)?.getContext('2d');
+  if (!ctx) return;
+  charts[id] = new Chart(ctx, {
+    type,
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: type === 'doughnut' ? palette : palette[0] + '99',
+        borderColor:     type === 'doughnut' ? palette.map(c => c + 'cc') : palette[0],
+        borderWidth: 1,
+        borderRadius: type === 'bar' ? 4 : 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          labels: { color: '#5a7898', font: { size: 11 } },
+          position: 'bottom'
+        }
+      },
+      scales: type === 'bar' ? {
+        x: { ticks: { color: '#5a7898', font: { size: 11 } }, grid: { color: '#1a2e46' } },
+        y: { ticks: { color: '#5a7898', font: { size: 11 } }, grid: { color: '#1a2e46' } }
+      } : {}
+    }
+  });
+}
+
+// ── Overview ──────────────────────────────────────────
+async function loadOverview() {
+  try {
+    const [users, entries, analytics, logs] = await Promise.all([
+      api('/api/users'), api('/api/data'), api('/api/analytics'), api('/api/logs?limit=10')
+    ]);
+    document.getElementById('stat-users').textContent    = users.total ?? '-';
+    document.getElementById('stat-entries').textContent  = entries.total ?? '-';
+    document.getElementById('stat-requests').textContent = analytics.total_requests ?? '-';
+    const rows = (logs.logs || []).map(l =>
+      `<tr>
+        <td class="mono">${fmtDate(l.created_at)}</td>
+        <td>${l.service}</td>
+        <td>${methodBadge(l.method)}</td>
+        <td class="mono">${l.route}</td>
+        <td>${statusBadge(l.status)}</td>
+        <td class="mono">${fmtDuration(l.duration_ms)}</td>
+      </tr>`
+    ).join('');
+    document.getElementById('recent-logs').innerHTML = rows || '<tr><td colspan="6" class="empty">No activity yet</td></tr>';
+    mkChart('chart-overview-svc',    'bar',      analytics.by_service, 'service', 'count');
+    mkChart('chart-overview-status', 'doughnut', analytics.by_status,  'status',  'count');
+  } catch (err) { toast(err.message, 'error'); }
+
+  try {
+    const r = await fetch('http://localhost:8888/intrusions');
+    const d = await r.json();
+    const uniq = new Set((d || []).map(i => i.source_ip)).size;
+    document.getElementById('stat-attackers').textContent = uniq;
+  } catch { document.getElementById('stat-attackers').textContent = 'N/A'; }
+}
+
+// ── Data Entries ──────────────────────────────────────
+async function loadEntries() {
+  try {
+    const { entries } = await api('/api/data');
+    const rows = (entries || []).map(e =>
+      `<tr>
+        <td>${e.id}</td>
+        <td>${e.title}</td>
+        <td class="text-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.content || '-'}</td>
+        <td>${e.author_name || '<span class="text-muted">-</span>'}</td>
+        <td class="mono">${fmtDate(e.created_at)}</td>
+        <td class="actions">
+          <button class="btn xs" onclick="openEditEntry(${e.id},${JSON.stringify(e.title)},${JSON.stringify(e.content||'')})">Edit</button>
+          <button class="btn xs danger" onclick="deleteEntry(${e.id})">Delete</button>
+        </td>
+      </tr>`
+    ).join('');
+    document.getElementById('entries-table').innerHTML = rows || '<tr><td colspan="6" class="empty">No entries yet. Create one above.</td></tr>';
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function createEntry() {
+  const title     = document.getElementById('entry-title').value.trim();
+  const content   = document.getElementById('entry-content').value.trim();
+  const author_id = parseInt(document.getElementById('entry-author').value) || null;
+  if (!title) { toast('Title is required', 'error'); return; }
+  try {
+    await api('/api/data', 'POST', { title, content, author_id });
+    toast('Entry created', 'success');
+    document.getElementById('entry-title').value   = '';
+    document.getElementById('entry-content').value = '';
+    document.getElementById('entry-author').value  = '';
+    loadEntries();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+function openEditEntry(id, title, content) {
+  document.getElementById('edit-entry-id').value      = id;
+  document.getElementById('edit-entry-title').value   = title;
+  document.getElementById('edit-entry-content').value = content;
+  document.getElementById('modal-entry').style.display = 'flex';
+}
+
+async function saveEntry() {
+  const id      = document.getElementById('edit-entry-id').value;
+  const title   = document.getElementById('edit-entry-title').value.trim();
+  const content = document.getElementById('edit-entry-content').value.trim();
+  try {
+    await api(`/api/data/${id}`, 'PUT', { title, content });
+    toast('Entry updated', 'success');
+    closeModal('modal-entry');
+    loadEntries();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function deleteEntry(id) {
+  if (!confirm(`Delete entry ${id}? This cannot be undone.`)) return;
+  try {
+    await api(`/api/data/${id}`, 'DELETE');
+    toast('Entry deleted', 'success');
+    loadEntries();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+// ── Analytics ─────────────────────────────────────────
+async function loadAnalytics() {
+  try {
+    const d = await api('/api/analytics');
+    mkChart('chart-svc',     'bar', d.by_service, 'service', 'count');
+    mkChart('chart-latency', 'bar', d.latency_ms, 'service', 'avg_ms');
+    document.getElementById('tbl-status').innerHTML =
+      (d.by_status || []).map(r =>
+        `<tr><td>${statusBadge(r.status)}</td><td>${r.count}</td></tr>`
+      ).join('') || '<tr><td colspan="2" class="empty">No data</td></tr>';
+    document.getElementById('tbl-routes').innerHTML =
+      (d.top_routes || []).map(r =>
+        `<tr><td class="mono">${r.route}</td><td>${r.count}</td></tr>`
+      ).join('') || '<tr><td colspan="2" class="empty">No data</td></tr>';
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+// ── Logs ──────────────────────────────────────────────
+async function loadLogs() {
+  const svc = document.getElementById('log-filter')?.value || '';
+  const url = '/api/logs' + (svc ? `?service=${svc}` : '');
+  try {
+    const { logs } = await api(url);
+    const rows = (logs || []).map(l =>
+      `<tr>
+        <td class="mono">${fmtDate(l.created_at)}</td>
+        <td>${l.service}</td>
+        <td>${methodBadge(l.method)}</td>
+        <td class="mono">${l.route}</td>
+        <td>${statusBadge(l.status)}</td>
+        <td class="mono">${fmtDuration(l.duration_ms)}</td>
+        <td class="mono text-muted">${l.source_ip || '-'}</td>
+      </tr>`
+    ).join('');
+    document.getElementById('logs-table').innerHTML = rows || '<tr><td colspan="7" class="empty">No logs yet</td></tr>';
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+// ── Init ──────────────────────────────────────────────
+renderAuthForm('login');
+if (token && currentUser) {
+  document.getElementById('auth-overlay').style.display = 'none';
+  setUserDisplay();
+  loadCurrentTab();
+}
+</script>
+</body>
+</html>
